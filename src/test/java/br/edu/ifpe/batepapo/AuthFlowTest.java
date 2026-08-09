@@ -97,6 +97,18 @@ class AuthFlowTest {
 	}
 
 	@Test
+	void registerCreatesSession() throws Exception {
+		String username = uniqueUsername();
+		MvcResult result = mockMvc.perform(post("/api/register")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(asJson(validRegisterPayload(username))))
+				.andExpect(status().isCreated())
+				.andReturn();
+		MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
+		assertNotNull(session, "register must create a session");
+	}
+
+	@Test
 	void duplicateUsernameReturns409() throws Exception {
 		String username = uniqueUsername();
 		register(username);

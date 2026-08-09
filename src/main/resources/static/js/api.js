@@ -15,11 +15,6 @@ async function apiFetch(path, options) {
         throw new Error("Não foi possível conectar ao servidor. Tente novamente.");
     }
 
-    if (res.status === 401) {
-        window.location.href = "/index.html";
-        throw new Error("Sessão expirada. Faça login novamente.");
-    }
-
     var body = null;
     var text = await res.text();
     if (text) {
@@ -28,6 +23,19 @@ async function apiFetch(path, options) {
         } catch (e) {
             body = null;
         }
+    }
+
+    if (res.status === 401 && options.redirectOn401) {
+        // Só redireciona se ainda não estiver na página de login (evita loop de recarga)
+        var jaNoLogin = window.location.pathname === "/" || window.location.pathname.endsWith("/index.html");
+        if (!jaNoLogin) {
+            window.location.href = "/index.html";
+            return;
+        }
+    }
+
+    if (res.status === 401) {
+        throw new Error("Sessão expirada. Faça login novamente.");
     }
 
     if (!res.ok) {
@@ -46,12 +54,12 @@ function register(data) {
     return apiFetch("/api/register", { method: "POST", body: JSON.stringify(data) });
 }
 
-function me() {
-    return apiFetch("/api/me");
+function me(options) {
+    return apiFetch("/api/me", options);
 }
 
-function rooms() {
-    return apiFetch("/api/rooms");
+function rooms(options) {
+    return apiFetch("/api/rooms", options);
 }
 
 function logout() {

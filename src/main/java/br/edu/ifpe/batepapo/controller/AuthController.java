@@ -44,7 +44,7 @@ public class AuthController {
 	}
 
 	@PostMapping("/register")
-	public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
+	public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request, HttpServletRequest httpRequest) {
 		if (studentRepository.existsByUsername(request.getUsername())) {
 			return ResponseEntity.status(HttpStatus.CONFLICT)
 					.body(new ErrorResponse("Username já cadastrado"));
@@ -52,16 +52,21 @@ public class AuthController {
 		Student student = new Student(request.getUsername(), passwordEncoder.encode(request.getPassword()),
 				request.getName(), request.getPeriodo(), Role.ROLE_USER);
 		student = studentRepository.save(student);
+		Authentication authentication = authenticationManager.authenticate(
+				new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
+		SecurityContextHolder.getContext().setAuthentication(authentication);
+		httpRequest.getSession(true);
 		return ResponseEntity.status(HttpStatus.CREATED).body(toUserResponse(student));
 	}
 
 	@PostMapping("/login")
-	public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletRequest httpRequest) {
+	public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
 		try {
 			Authentication authentication = authenticationManager.authenticate(
 					new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
 			SecurityContextHolder.getContext().setAuthentication(authentication);
 			httpRequest.getSession(true);
+			httpRequest.changeSessionId();
 			Student student = studentRepository.findByUsername(request.getUsername())
 					.orElseThrow(() -> new BadCredentialsException("Usuário não encontrado"));
 			return ResponseEntity.ok(toUserResponse(student));

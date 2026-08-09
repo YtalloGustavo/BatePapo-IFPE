@@ -359,3 +359,45 @@ body {
         max-width: 90%;
     }
 }
+
+/* ===== Atributo hidden ===== */
+
+[hidden] {
+    display: none !important;
+}
+
+/* ===== Abas de salas ===== */
+
+.abas-salas {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    padding: 8px 12px;
+    background: #f4f4f4;
+    border-bottom: 1px solid #ddd;
+}
+
+.aba-sala {
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    border-radius: 14px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.aba-sala.ativa {
+    background: #1e7a46;
+    color: #fff;
+    border-color: #1e7a46;
+}
+
+.mensagem-sistema {
+    align-self: center;
+    background: transparent;
+    color: #777;
+    font-size: 12px;
+    font-style: italic;
+    padding: 2px 0;
+    text-align: center;
+}

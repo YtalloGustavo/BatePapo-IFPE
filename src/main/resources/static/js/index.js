@@ -66,6 +66,14 @@
             mostrarErro("Preencha todos os campos.");
             return;
         }
+        if (username.length < 3 || !/^[a-zA-Z0-9_]+$/.test(username)) {
+            mostrarErro("Usuário deve ter pelo menos 3 caracteres (letras, números ou _).");
+            return;
+        }
+        if (password.length < 6) {
+            mostrarErro("A senha deve ter pelo menos 6 caracteres.");
+            return;
+        }
 
         try {
             await register({ username: username, password: password, name: name, periodo: parseInt(periodo, 10) });
@@ -75,11 +83,11 @@
         }
     }
 
-    // Se já estiver logado, vai direto para o chat
+    // Se já estiver logado, vai direto para o chat; se não, permanece na página (sem redirecionar em 401)
     me().then(function () {
         window.location.href = "/chat.html";
     }).catch(function () {
-        // Não logado: permanece na página (api.js redireciona em 401, mas o catch evita erros não tratados)
+        // Não logado: permanece na página
     });
 
     formLogin.addEventListener("submit", enviarLogin);
