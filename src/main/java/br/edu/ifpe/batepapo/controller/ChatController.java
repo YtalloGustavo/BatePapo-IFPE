@@ -3,6 +3,7 @@ package br.edu.ifpe.batepapo.controller;
 import java.security.Principal;
 import java.time.Instant;
 
+import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -27,12 +28,8 @@ public class ChatController {
 
 	@MessageMapping("/chat.send")
 	public void sendMessage(@Payload ChatMessageRequest request, Principal principal) {
-		if (principal == null) {
-			return;
-		}
-
-		Room room = Room.fromId(request.getRoomId());
-		if (room == null) {
+		Student student = validSender(principal, request.getRoomId());
+		if (student == null) {
 			return;
 		}
 
@@ -41,14 +38,56 @@ public class ChatController {
 			return;
 		}
 
-		Student student = studentRepository.findByUsername(principal.getName()).orElse(null);
-		if (student == null) {
-			return;
-		}
-
 		ChatMessageResponse response = new ChatMessageResponse("CHAT", student.getName(), student.getPeriodo(),
 				request.getRoomId(), text.trim(), Instant.now().toString());
 
 		simpMessagingTemplate.convertAndSend("/topic/room." + request.getRoomId(), response);
+	}
+
+	@MessageMapping("/chat.join/{roomId}")
+	public void joinRoom(@DestinationVariable int roomId, Principal principal) {
+		Student student = validSender(principal, roomId);
+		if (student == null) {
+			return;
+		}
+
+		ChatMessageResponse response = new ChatMessageResponse("JOIN", student.getName(), student.getPeriodo(),
+				roomId, student.getName() + " entrou na sala", Instant.now().toString());
+
+		simpMessagingTemplate.convertAndSend("/topic/room." + roomId, response);
+	}
+
+	@MessageMapping("/chat.leave/{roomId}")
+	public void leaveRoom(@DestinationVariable int roomId, Principal principal) {
+		Student student = validSender(principal, roomId);
+		if (student == null) {
+			return;
+		}
+
+		ChatMessageResponse response = new ChatMessageResponse("LEAVE", student.getName(), student.getPeriodo(),
+				roomId, student.getName() + " saiu da sala", Instant.now().toString());
+
+		simpMessagingTemplate.convertAndSend("/topic/room." + roomId, response);
+	}
+
+	private Student validSender(Principal principal, int roomId) {
+		if (principal == null) {
+			return null;
+		}
+
+		Room room = Room.fromId(roomId);
+		if (room == null) {
+			return null;
+		}
+
+		Student student = studentRepository.findByUsername(principal.getName()).orElse(null);
+		if (student == null) {
+			return null;
+		}
+		if (student.getPeriodo() == null || student.getName() == null) {
+			return null;
+		}
+
+		return student;
 	}
 }

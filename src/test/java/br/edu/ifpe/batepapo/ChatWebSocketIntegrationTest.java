@@ -182,6 +182,14 @@ class ChatWebSocketIntegrationTest {
 		session.send("/app/chat.send", payload);
 	}
 
+	/**
+	 * Publishes a presence event (join/leave) with an empty JSON body, matching the
+	 * classic stomp.js contract: destination + headers + empty body.
+	 */
+	private void sendPresenceEvent(StompSession session, String destination) {
+		session.send(destination, Collections.emptyMap());
+	}
+
 	@Test
 	void authenticatedUserSendsMessageAndReceivesBroadcast() throws Exception {
 		String jsessionId = registerAndLogin();
@@ -217,5 +225,62 @@ class ChatWebSocketIntegrationTest {
 		assertNotNull(expected, "no broadcast received on /topic/room.1 within 5s");
 		assertEquals(1, expected.get("roomId").asInt());
 		assertEquals("segunda mensagem", expected.get("text").asText());
+	}
+
+	@Test
+	void joinedUserReceivesJoinBroadcast() throws Exception {
+		String jsessionId = registerAndLogin();
+		StompSession session = connectStomp(jsessionId);
+		BlockingQueue<JsonNode> room1Frames = subscribeToRoom(session, "/topic/room.1");
+
+		sendPresenceEvent(session, "/app/chat.join/1");
+
+		JsonNode join = room1Frames.poll(5, TimeUnit.SECONDS);
+		assertNotNull(join, "no JOIN broadcast received on /topic/room.1 within 5s");
+		assertEquals("JOIN", join.get("type").asText());
+		assertEquals("Aluno WebSocket", join.get("sender").asText());
+		assertEquals(3, join.get("senderPeriodo").asInt());
+		assertEquals(1, join.get("roomId").asInt());
+		assertTrue(join.get("text").asText().contains("entrou na sala"),
+				"JOIN text must announce the user entering the room");
+		assertFalse(join.get("timestamp").asText().trim().isEmpty(), "timestamp must not be blank");
+	}
+
+	@Test
+	void leavingUserBroadcastsLeave() throws Exception {
+		String jsessionId = registerAndLogin();
+		StompSession session = connectStomp(jsessionId);
+		BlockingQueue<JsonNode> room1Frames = subscribeToRoom(session, "/topic/room.1");
+
+		sendPresenceEvent(session, "/app/chat.leave/1");
+
+		JsonNode leave = room1Frames.poll(5, TimeUnit.SECONDS);
+		assertNotNull(leave, "no LEAVE broadcast received on /topic/room.1 within 5s");
+		assertEquals("LEAVE", leave.get("type").asText());
+		assertEquals("Aluno WebSocket", leave.get("sender").asText());
+		assertEquals(3, leave.get("senderPeriodo").asInt());
+		assertEquals(1, leave.get("roomId").asInt());
+		assertTrue(leave.get("text").asText().contains("saiu da sala"),
+				"LEAVE text must announce the user leaving the room");
+		assertFalse(leave.get("timestamp").asText().trim().isEmpty(), "timestamp must not be blank");
+	}
+
+	@Test
+	void joinBroadcastRespectsRoomIsolation() throws Exception {
+		String jsessionId = registerAndLogin();
+		StompSession session = connectStomp(jsessionId);
+		BlockingQueue<JsonNode> room1Frames = subscribeToRoom(session, "/topic/room.1");
+
+		sendPresenceEvent(session, "/app/chat.join/2");
+
+		JsonNode unexpected = room1Frames.poll(1500, TimeUnit.MILLISECONDS);
+		assertNull(unexpected, "JOIN broadcast for room 2 must not arrive on /topic/room.1");
+
+		sendPresenceEvent(session, "/app/chat.join/1");
+
+		JsonNode expected = room1Frames.poll(5, TimeUnit.SECONDS);
+		assertNotNull(expected, "no JOIN broadcast received on /topic/room.1 within 5s");
+		assertEquals("JOIN", expected.get("type").asText());
+		assertEquals(1, expected.get("roomId").asInt());
 	}
 }

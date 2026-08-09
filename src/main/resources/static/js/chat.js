@@ -13,6 +13,9 @@
     var saindoDaSala = false;
     var reconectando = false;
     var tentativasReconexao = 0;
+    var currentSubscription = null;
+    var usuarioPeriodo = null;
+    var salasDisponiveis = [];
 
     var telaSalas = document.getElementById("tela-salas");
     var telaChat = document.getElementById("tela-chat");
@@ -24,6 +27,7 @@
     var btnEnviar = document.getElementById("btn-enviar");
     var btnSairSala = document.getElementById("btn-sair-sala");
     var btnSair = document.getElementById("btn-sair");
+    var divAbasSalas = document.getElementById("abas-salas");
 
     function definirStatus(texto, classe) {
         statusConexao.textContent = texto;
@@ -39,6 +43,16 @@
 
     // Renderização segura: apenas createElement + textContent (conteúdo do chat não é confiável)
     function renderizarMensagem(msg) {
+        // Mensagens de sistema (JOIN/LEAVE) são exibidas como texto centralizado
+        if (msg.type && msg.type !== "CHAT") {
+            var sistema = document.createElement("div");
+            sistema.className = "mensagem-sistema";
+            sistema.textContent = msg.text;
+            divMensagens.appendChild(sistema);
+            divMensagens.scrollTop = divMensagens.scrollHeight;
+            return;
+        }
+
         var div = document.createElement("div");
         div.className = "mensagem " + (msg.sender === currentUserName ? "minha-mensagem" : "outra-mensagem");
 
@@ -92,7 +106,12 @@
         };
 
         stomp.connect({}, function () {
-            stomp.subscribe("/topic/room." + roomId, onMensagem);
+            currentSubscription = stomp.subscribe("/topic/room." + roomId, onMensagem);
+            try {
+                stomp.send("/app/chat.join/" + roomId, {}, "{}");
+            } catch (e) {
+                // ignora erros ao publicar entrada na sala
+            }
             tentativasReconexao = 0;
             reconectando = false;
             definirStatus("conectado", "status-conectado");
@@ -135,7 +154,7 @@
         };
 
         novoStomp.connect({}, function () {
-            novoStomp.subscribe("/topic/room." + currentRoomId, onMensagem);
+            currentSubscription = novoStomp.subscribe("/topic/room." + currentRoomId, onMensagem);
             tentativasReconexao = 0;
             reconectando = false;
             definirStatus("conectado", "status-conectado");
@@ -153,6 +172,7 @@
         tituloSala.textContent = "Período " + roomId;
         definirStatus("conectando...", "status-reconectando");
         divMensagens.innerHTML = "";
+        renderizarAbas(salasDisponiveis);
 
         telaSalas.hidden = true;
         telaChat.hidden = false;
@@ -166,6 +186,11 @@
         tentativasReconexao = 0;
 
         if (stomp) {
+            try {
+                stomp.send("/app/chat.leave/" + currentRoomId, {}, "{}");
+            } catch (e) {
+                // ignora erros ao publicar saída da sala
+            }
             try {
                 stomp.disconnect(function () {});
             } catch (e) {
@@ -183,6 +208,7 @@
         stomp = null;
         sock = null;
         currentRoomId = null;
+        currentSubscription = null;
 
         divMensagens.innerHTML = "";
         inputMensagem.value = "";
@@ -218,18 +244,67 @@
         });
     }
 
+    function renderizarAbas(salas) {
+        divAbasSalas.innerHTML = "";
+        salas.forEach(function (sala) {
+            var aba = document.createElement("button");
+            aba.type = "button";
+            aba.className = "aba-sala";
+            aba.setAttribute("role", "tab");
+            aba.textContent = "Período " + sala.id;
+            if (sala.id === currentRoomId) {
+                aba.classList.add("ativa");
+            }
+            aba.addEventListener("click", function () {
+                trocarSala(sala.id);
+            });
+            divAbasSalas.appendChild(aba);
+        });
+    }
+
+    function trocarSala(novoRoomId) {
+        if (novoRoomId === currentRoomId || stomp == null || !stomp.connected) {
+            return;
+        }
+        try {
+            stomp.send("/app/chat.leave/" + currentRoomId, {}, "{}");
+        } catch (e) {
+            // ignora erros ao publicar saída da sala
+        }
+        currentRoomId = novoRoomId;
+        tituloSala.textContent = "Período " + novoRoomId;
+        divMensagens.innerHTML = "";
+        renderizarAbas(salasDisponiveis);
+        if (currentSubscription) {
+            try {
+                currentSubscription.unsubscribe();
+            } catch (e) {
+                // ignora erros ao cancelar a inscrição anterior
+            }
+        }
+        currentSubscription = stomp.subscribe("/topic/room." + novoRoomId, onMensagem);
+        try {
+            stomp.send("/app/chat.join/" + novoRoomId, {}, "{}");
+        } catch (e) {
+            // ignora erros ao publicar entrada na sala
+        }
+    }
+
     function init() {
-        me().then(function (usuario) {
+        me({ redirectOn401: true }).then(function (usuario) {
             currentUserName = usuario.username;
+            usuarioPeriodo = usuario.periodo;
             document.getElementById("usuario-nome").textContent = usuario.name;
             var badge = document.getElementById("usuario-periodo");
             badge.textContent = "Período " + usuario.periodo;
             badge.hidden = false;
-            return rooms();
+            return rooms({ redirectOn401: true });
         }).then(function (salas) {
+            salasDisponiveis = salas;
             renderizarSalas(salas);
+            entrarSala(usuarioPeriodo);
         }).catch(function (e) {
-            // 401 já redireciona via api.js; demais erros são exibidos
+            // 401 redireciona para o login via api.js; demais erros são exibidos
             definirStatus(e.message, "status-erro");
         });
     }
@@ -243,6 +318,13 @@
     });
 
     window.addEventListener("beforeunload", function () {
+        try {
+            if (stomp) {
+                stomp.send("/app/chat.leave/" + currentRoomId, {}, "{}");
+            }
+        } catch (e) {
+            // ignora erros ao publicar saída da sala
+        }
         try {
             if (stomp) {
                 stomp.disconnect(function () {});
