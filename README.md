@@ -73,11 +73,4 @@ src/main/java/br/edu/ifpe/batepapo/
 src/main/resources/static/   index.html · chat.html · css · js (front-end)
 ```
 
-## Script de demonstração (vídeo)
-
-1. Abrir o app em duas janelas do navegador
-2. Registrar o estudante A (Período 3) e o estudante B (Período 3)
-3. Ambos entram na sala "Período 3": A envia "Olá, turma!" e a mensagem aparece para B (e vice-versa)
-4. Mostrar que um usuário do Período 1 não recebe as mensagens do Período 3
-5. Sair da sala e voltar: a conversa foi descartada (sem histórico)
-6. Abrir o `/h2-console` e mostrar a tabela `student` com as senhas em hash BCrypt
+## Documentação Gerada pela IA ## 
