@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BatePapo IFPE - Chat</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header class="cabecalho">
+        <h1>BatePapo IFPE</h1>
+        <div class="usuario-info">
+            <span id="usuario-nome" class="usuario-nome"></span>
+            <span id="usuario-periodo" class="badge" hidden></span>
+            <button type="button" id="btn-sair" class="btn btn-secundario">Sair</button>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Tela 1: escolha de sala -->
+        <section id="tela-salas" class="tela">
+            <h2>Escolha sua sala</h2>
+            <div id="salas" class="salas-grid"></div>
+        </section>
+
+        <!-- Tela 2: chat da sala -->
+        <section id="tela-chat" class="tela" hidden>
+            <div class="chat-cabecalho">
+                <h2 id="titulo-sala"></h2>
+                <span id="status-conexao" class="status status-desconectado">desconectado</span>
+            </div>
+
+            <div id="mensagens" class="mensagens" aria-live="polite"></div>
+
+            <div class="chat-entrada">
+                <input type="text" id="mensagem-input" placeholder="Digite sua mensagem..." autocomplete="off" maxlength="500">
+                <button type="button" id="btn-enviar" class="btn btn-primario">Enviar</button>
+                <button type="button" id="btn-sair-sala" class="btn btn-secundario">Sair da sala</button>
+            </div>
+        </section>
+    </main>
+
+    <script src="/vendor/sockjs.min.js"></script>
+    <script src="/vendor/stomp.min.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/chat.js"></script>
+</body>
+</html>

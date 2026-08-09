@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BatePapo IFPE - Entrar</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header class="cabecalho">
+        <h1>BatePapo IFPE</h1>
+    </header>
+
+    <main class="container">
+        <div class="card">
+            <div id="erro" class="erro" role="alert" hidden></div>
+
+            <!-- Formulário de Login -->
+            <form id="form-login" class="formulario" novalidate>
+                <h2>Entrar</h2>
+                <label for="login-username">Usuário</label>
+                <input type="text" id="login-username" name="username" autocomplete="username" required>
+
+                <label for="login-password">Senha</label>
+                <input type="password" id="login-password" name="password" autocomplete="current-password" required>
+
+                <button type="submit" class="btn btn-primario">Entrar</button>
+            </form>
+
+            <!-- Formulário de Registro -->
+            <form id="form-registro" class="formulario" hidden novalidate>
+                <h2>Criar conta</h2>
+                <label for="reg-username">Usuário</label>
+                <input type="text" id="reg-username" name="username" autocomplete="username" required>
+
+                <label for="reg-password">Senha</label>
+                <input type="password" id="reg-password" name="password" autocomplete="new-password" required>
+
+                <label for="reg-name">Nome</label>
+                <input type="text" id="reg-name" name="name" autocomplete="name" required>
+
+                <label for="reg-periodo">Período</label>
+                <select id="reg-periodo" name="periodo" required>
+                    <option value="" disabled selected>Selecione o período</option>
+                    <option value="1">Período 1</option>
+                    <option value="2">Período 2</option>
+                    <option value="3">Período 3</option>
+                    <option value="4">Período 4</option>
+                    <option value="5">Período 5</option>
+                    <option value="6">Período 6</option>
+                </select>
+
+                <button type="submit" class="btn btn-primario">Cadastrar</button>
+            </form>
+
+            <p class="alternar">
+                <span id="texto-alternar">Não tem uma conta?</span>
+                <button type="button" id="btn-alternar" class="link">Criar conta</button>
+            </p>
+        </div>
+    </main>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/index.js"></script>
+</body>
+</html>
